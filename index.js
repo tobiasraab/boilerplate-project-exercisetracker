@@ -25,10 +25,10 @@ class Db {
     this.data.push(newUser)
   }
   addExerciseToUser(_id, exercise) {
-    if(this.data.length !== 0) {
+    if (this.data.length !== 0) {
       // find db entry
-      for(let dbIndex = 0; dbIndex < this.data.length; dbIndex++) {
-        if(this.data[dbIndex]._id === _id) {
+      for (let dbIndex = 0; dbIndex < this.data.length; dbIndex++) {
+        if (this.data[dbIndex]._id === _id) {
           this.data[dbIndex].log.push(exercise)
           console.log(`New Exercise added: ${JSON.stringify(this.data[dbIndex])}`)
         }
@@ -100,7 +100,7 @@ class Exercise {
     // check if date is valid
     date = new Date(date)
     const DATE_IS_VALID = (date instanceof Date && !isNaN(date.valueOf()))
-    if(DATE_IS_VALID) {
+    if (DATE_IS_VALID) {
       this.date = date.toDateString()
     } else {
       this.date = (new Date()).toDateString()
@@ -132,21 +132,53 @@ app.get('/api/users', function (req, res) {
 // user exercise log API endpoint
 app.get('/api/users/:_id/logs', function (req, res) {
   // Extract data
-  console.log(req.params)
+  const QUERY = req.query
+  let from = new Date(QUERY.from)
+  let to = new Date(QUERY.to)
+  let limit = QUERY.limit
   const SUBMITTED_ID = req.params._id
+
   // get User Obj
   const USER = DB.getUser(SUBMITTED_ID)
+  // create dedicated log instance
+  let logs = USER.log.slice()
+
+  // if from is valid date => filter exercise items
+  if (from instanceof Date && !isNaN(from.valueOf())) {
+    for(let logsIndex = 0; logsIndex < logs.length; logsIndex++) {
+      if(new Date(logs[logsIndex].date) < from) {
+        logs.splice(logsIndex, 1)
+      }
+    }
+  }
+
+  // if to is valid date => filter exercise items
+  if (to instanceof Date && !isNaN(to.valueOf())) {
+    for (let logsIndex = 0; logsIndex < logs.length; logsIndex++) {
+      if (new Date(logs[logsIndex].date) > to) {
+        logs.splice(logsIndex, 1)
+      }
+    }
+  }
+
+  // if limit is valid number => filter exercise items
+  if (!isNaN(parseFloat(limit))) {
+    logs.splice(limit, logs.length - limit)
+    console.log("logs: filter - limit", logs)
+  }
+  console.log(USER.log)
+
   const EXERCISE_COUNTER = USER.log.length
   res.json({
     _id: USER._id,
     username: USER.username,
     count: EXERCISE_COUNTER,
-    log: USER.log,
+    log: logs,
   })
 })
 
 // submit exercise API endpoint
-app.post('/api/users/:_id/exercises', PARSER, function(req, res) {
+app.post('/api/users/:_id/exercises', PARSER, function (req, res) {
   // Extract data
   const SUBMITTED_EXERCISE = req.body
   const USER_ID = req.params._id
@@ -161,7 +193,7 @@ app.post('/api/users/:_id/exercises', PARSER, function(req, res) {
     username: NEW_USER_OBJ.username,
     date: EXERCISE.date,
     duration: EXERCISE.duration,
-    description: EXERCISE.description 
+    description: EXERCISE.description
   })
 })
 
