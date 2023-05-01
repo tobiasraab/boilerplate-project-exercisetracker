@@ -68,11 +68,13 @@ class User {
     else {
       // try out different _id values
       let foundNew_id = false
-      for (let new_id = 2; new_id <= DB.data.length + 1; new_id++) {
+      for (let new_id = 1; new_id <= DB.data.length + 1; new_id++) {
+        console.log("db length: ", DB.data.length)
+        console.log(`Check new ID: ${new_id}`)
         // check each database entry for new _id
         for (let dbIndex = 0; dbIndex < DB.data.length; dbIndex++) {
           // new _id already exists in database => try again with new _id value
-          if (DB.data[dbIndex]._id === new_id) {
+          if (Number(DB.data[dbIndex]._id) === new_id) {
             foundNew_id = false
             break;
           }
@@ -96,6 +98,7 @@ class Exercise {
     this.description = description
     this.duration = Number(duration)
     // check if date is valid
+    date = new Date(date)
     const DATE_IS_VALID = (date instanceof Date && !isNaN(date.valueOf()))
     if(DATE_IS_VALID) {
       this.date = date.toDateString()
@@ -136,6 +139,7 @@ app.get('/api/users/:_id/logs', function (req, res) {
   const EXERCISE_COUNTER = USER.log.length
   res.json({
     _id: USER._id,
+    username: USER.username,
     count: EXERCISE_COUNTER,
     log: USER.log,
   })
@@ -145,15 +149,16 @@ app.get('/api/users/:_id/logs', function (req, res) {
 app.post('/api/users/:_id/exercises', PARSER, function(req, res) {
   // Extract data
   const SUBMITTED_EXERCISE = req.body
+  const USER_ID = req.params._id
   // create new Exercise Obj
   const EXERCISE = new Exercise(SUBMITTED_EXERCISE.description, SUBMITTED_EXERCISE.duration, SUBMITTED_EXERCISE.date)
   // add exercise to database
-  DB.addExerciseToUser(SUBMITTED_EXERCISE[':_id'], EXERCISE)
+  DB.addExerciseToUser(USER_ID, EXERCISE)
   // send response
-  const NEW_USER_OBJ = DB.getUser(SUBMITTED_EXERCISE[':_id'])
+  const NEW_USER_OBJ = DB.getUser(USER_ID)
   res.json({
-    username: NEW_USER_OBJ.username,
     _id: NEW_USER_OBJ._id,
+    username: NEW_USER_OBJ.username,
     date: EXERCISE.date,
     duration: EXERCISE.duration,
     description: EXERCISE.description 
@@ -161,6 +166,6 @@ app.post('/api/users/:_id/exercises', PARSER, function(req, res) {
 })
 
 
-const listener = app.listen(process.env.PORT || 3000, () => {
+const listener = app.listen(process.env.port || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
 })
